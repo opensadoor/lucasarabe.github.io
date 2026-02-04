@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studyfy Pro - Persistent Hub</title>
+    <style>
+        :root { --green: #1DB954; --black: #000; --dark: #121212; --grey: #181818; --text: #b3b3b3; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--black); color: white; overflow: hidden; }
+
+        /* --- LOGIN --- */
+        #login-page { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(to bottom, #333, #000); position: absolute; width: 100%; z-index: 1000; }
+        .login-box { width: 350px; text-align: center; padding: 30px; background: var(--black); border-radius: 8px; border: 1px solid #282828; }
+        input, textarea { width: 100%; margin: 8px 0; padding: 12px; background: #333; border: 1px solid transparent; color: white; border-radius: 4px; outline: none; }
+        input:focus { border-color: var(--green); }
+
+        /* --- LAYOUT --- */
+        #main-content { display: none; flex-direction: column; height: 100vh; }
+        .layout-body { display: flex; flex: 1; height: 90vh; }
+
+        .sidebar { width: 240px; background: var(--black); padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #282828; }
+        .logo { color: var(--green); font-size: 24px; font-weight: bold; margin-bottom: 30px; }
+        
+        /* PROGRESSO */
+        .prog-label { font-size: 11px; color: var(--text); margin-bottom: 5px; letter-spacing: 1px; }
+        .progress-container { background: #333; height: 6px; border-radius: 3px; margin-bottom: 25px; overflow: hidden; }
+        #progress-bar { background: var(--green); height: 100%; width: 0%; transition: 0.6s ease; }
+
+        .btn-add { width: 100%; padding: 12px; background: white; color: black; border: none; border-radius: 20px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.2s; }
+        .btn-add:hover { transform: scale(1.05); }
+
+        .content { flex: 1; background: linear-gradient(to bottom, #1e1e1e, #121212); padding: 30px; overflow-y: auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+
+        /* CARDS */
+        .card { background: var(--grey); padding: 15px; border-radius: 8px; cursor: pointer; transition: 0.3s; position: relative; border: 1px solid transparent; }
+        .card:hover { background: #282828; }
+        .card.completed { border-color: var(--green); }
+        .card.completed::after { content: "✓"; position: absolute; top: 10px; right: 10px; background: var(--green); color: black; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
+        .card-img { width: 100%; aspect-ratio: 1; border-radius: 4px; background: #333; display: flex; align-items: center; justify-content: center; font-size: 50px; margin-bottom: 10px; }
+
+        /* AREA DE ESTUDO */
+        #study-area { display: none; }
+        .video-container { width: 100%; aspect-ratio: 16/9; background: #000; margin: 15px 0; border-radius: 8px; overflow: hidden; }
+        .texto-apoio { background: #222; padding: 20px; border-radius: 8px; line-height: 1.7; margin-bottom: 20px; white-space: pre-wrap; color: #ececec; border: 1px solid #333; }
+        .btn-done { background: var(--green); color: black; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+
+        /* MODAL */
+        #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; justify-content:center; align-items:center; }
+        .modal-content { background: #282828; padding: 30px; border-radius: 10px; width: 450px; }
+    </style>
+</head>
+<body>
+
+    <div id="login-page">
+        <div class="login-box">
+            <h2 style="color: var(--green); margin-bottom: 10px;">Studyfy</h2>
+            <p style="color: var(--text); font-size: 14px; margin-bottom: 20px;">Faz login para aceder às tuas matérias</p>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="E-mail" required>
+                <input type="password" id="login-pass" placeholder="Senha (min. 6 caracteres)" required>
+                <button type="submit" class="btn-add" style="background: var(--green); margin-top: 10px;">ENTRAR</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div class="layout-body">
+            <nav class="sidebar">
+                <div class="logo">Studyfy</div>
+                
+                <p class="prog-label">TEU PROGRESSO</p>
+                <div class="progress-container">
+                    <div id="progress-bar"></div>
+                </div>
+
+                <button class="btn-add" onclick="openModal()">+ Adicionar Aula</button>
+                <ul style="list-style: none; margin-top: 20px;">
+                    <li style="color: var(--text); padding: 10px 0; cursor: pointer;">🏠 Início</li>
+                    <li onclick="limparTudo()" style="color: #ff4444; padding: 10px 0; cursor: pointer; font-size: 12px;">♻ Limpar Biblioteca</li>
+                </ul>
+            </nav>
+
+            <main class="content">
+                <div id="home-view">
+                    <h2 style="margin-bottom: 20px;">Minhas Matérias</h2>
+                    <div class="grid" id="grid-materias"></div>
+                </div>
+
+                <div id="study-area">
+                    <button onclick="backToHome()" style="background: none; border: none; color: var(--green); cursor: pointer; margin-bottom: 15px; font-weight: bold;">← VOLTAR À BIBLIOTECA</button>
+                    <h2 id="view-titulo"></h2>
+                    <p id="view-materia-info" style="color: var(--text); margin-bottom: 20px;"></p>
+                    
+                    <div class="video-container" id="view-video"></div>
+                    
+                    <h3>📖 Resumo da Aula</h3>
+                    <div class="texto-apoio" id="view-texto"></div>
+                    
+                    <button class="btn-done" id="btn-concluir">MARCAR COMO CONCLUÍDA</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="modal">
+        <div class="modal-content">
+            <h3>Nova Aula Multimédia</h3>
+            <input type="text" id="in-titulo" placeholder="Título (ex: Frações)">
+            <input type="text" id="in-materia" placeholder="Matéria (ex: Matemática)">
+            <input type="text" id="in-video" placeholder="Link do Vídeo YouTube">
+            <textarea id="in-texto" rows="5" placeholder="Escreve ou cola aqui o texto da aula..."></textarea>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button onclick="closeModal()" style="background:none; border:none; color:white; cursor:pointer;">Cancelar</button>
+                <button class="btn-add" style="background:var(--green); width: auto; padding: 10px 20px;" onclick="salvarAula()">Criar Aula</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Carregar dados salvos ao iniciar
+        let aulas = JSON.parse(localStorage.getItem('studyfy_data')) || [];
+
+        // LOGIN COM VALIDAÇÃO
+        document.getElementById('login-form').onsubmit = (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+
+            if(email.includes('@') && pass.length >= 6) {
+                document.getElementById('login-page').style.display = 'none';
+                document.getElementById('main-content').style.display = 'flex';
+                renderizarCards();
+            } else {
+                alert("E-mail inválido ou senha muito curta!");
+            }
+        };
+
+        // CONTROLO DE INTERFACE
+        function openModal() { document.getElementById('modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        function backToHome() { 
+            document.getElementById('study-area').style.display = 'none'; 
+            document.getElementById('home-view').style.display = 'block'; 
+        }
+
+        // SALVAR NO LOCALSTORAGE
+        function salvarAula() {
+            const titulo = document.getElementById('in-titulo').value;
+            const materia = document.getElementById('in-materia').value;
+            let video = document.getElementById('in-video').value;
+            const texto = document.getElementById('in-texto').value;
+
+            if(!titulo || !materia) return alert("Título e Matéria são obrigatórios!");
+
+            // Converte link do Youtube para Embed
+            if(video.includes("watch?v=")) video = video.replace("watch?v=", "embed/");
+            else if(video.includes("youtu.be/")) video = video.replace("youtu.be/", "youtube.com/embed/");
+
+            aulas.push({ titulo, materia, video, texto, concluida: false });
+            atualizarStorage();
+            closeModal();
+            renderizarCards();
+            
+            // Limpar inputs
+            document.querySelectorAll('#modal input, #modal textarea').forEach(i => i.value = "");
+        }
+
+        function atualizarStorage() {
+            localStorage.setItem('studyfy_data', JSON.stringify(aulas));
+        }
+
+        function renderizarCards() {
+            const grid = document.getElementById('grid-materias');
+            grid.innerHTML = "";
+            let concluidas = 0;
+
+            aulas.forEach((aula, index) => {
+                if(aula.concluida) concluidas++;
+                const card = document.createElement('div');
+                card.className = `card ${aula.concluida ? 'completed' : ''}`;
+                card.innerHTML = `
+                    <div class="card-img">📚</div>
+                    <p><strong>${aula.titulo}</strong></p>
+                    <p style="color:var(--text); font-size:12px;">${aula.materia}</p>
+                `;
+                card.onclick = () => abrirAula(index);
+                grid.appendChild(card);
+            });
+
+            // Atualiza Barra de Progresso Lateral
+            const prog = aulas.length > 0 ? (concluidas / aulas.length) * 100 : 0;
+            document.getElementById('progress-bar').style.width = prog + "%";
+        }
+
+        function abrirAula(idx) {
+            const aula = aulas[idx];
+            document.getElementById('home-view').style.display = 'none';
+            document.getElementById('study-area').style.display = 'block';
+            
+            document.getElementById('view-titulo').innerText = aula.titulo;
+            document.getElementById('view-materia-info').innerText = `Disciplina: ${aula.materia}`;
+            document.getElementById('view-texto').innerText = aula.texto || "Sem resumo disponível.";
+            
+            document.getElementById('view-video').innerHTML = aula.video ? 
+                `<iframe width="100%" height="100%" src="${aula.video}" frameborder="0" allowfullscreen></iframe>` : 
+                `<p style="padding:40px; text-align:center; color:var(--text);">Vídeo não disponível.</p>`;
+
+            const btn = document.getElementById('btn-concluir');
+            btn.innerText = aula.concluida ? "✓ AULA CONCLUÍDA" : "MARCAR COMO CONCLUÍDA";
+            btn.style.background = aula.concluida ? "#555" : (--green);
+            
+            btn.onclick = () => {
+                aulas[idx].concluida = !aulas[idx].concluida;
+                atualizarStorage();
+                abrirAula(idx);
+                renderizarCards();
+            };
+        }
+
+        function limparTudo() {
+            if(confirm("Desejas apagar todas as matérias guardadas?")) {
+                localStorage.removeItem('studyfy_data');
+                aulas = [];
+                renderizarCards();
+                backToHome();
+            }
+        }
+    </script>
+</body>
+</html>
+
+document.addEventListener('DOMContentLoaded', () => {
+    const loginForm = document.getElementById('login-form');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            // IMPORTANTE: Impede que a página recarregue
+            e.preventDefault(); 
+
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+
+            // Validação simples
+            if (email.includes('@') && pass.length >= 6) {
+                console.log("Login aceito!");
+                document.getElementById('login-page').style.display = 'none';
+                document.getElementById('main-content').style.display = 'flex';
+                
+                // Se a função de renderizar cards existir, chama ela
+                if (typeof renderizarCards === "function") {
+                    renderizarCards();
+                }
+            } else {
+                alert("Erro: O e-mail deve conter '@' e a senha deve ter pelo menos 6 caracteres.");
+            }
+        });
+    }
+});
